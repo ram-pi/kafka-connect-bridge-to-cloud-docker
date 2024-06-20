@@ -1,0 +1,98 @@
+@baseUrl = http://localhost:8083
+@connectorName = my-es-sink
+
+@connectorClass = io.confluent.connect.elasticsearch.ElasticsearchSinkConnector
+
+### PLUGIN LIST
+GET {{baseUrl}}/connector-plugins HTTP/1.1
+
+### VALIDATE CONNECTOR
+PUT {{baseUrl}}/connector-plugins/{{connectorClass}}/config/validate HTTP/1.1
+Content-Type: application/json
+
+{
+    "connector.class": "io.confluent.connect.elasticsearch.ElasticsearchSinkConnector",
+    "errors.log.include.messages": "true",
+    "config.action.reload": "restart",
+    "errors.log.enable": "true",
+    "tasks.max": "1",
+    "errors.deadletterqueue.topic.replication.factor": "1",
+    "value.converter": "org.apache.kafka.connect.json.JsonConverter",
+    "value.converter.schemas.enable": "false",
+    "errors.retry.timeout": "10",
+    "topics": "transactions",
+    "errors.retry.delay.max.ms": "5000",
+    "behavior.on.malformed.documents": "warn",
+    "flush.timeout.ms": "10000",
+    "errors.tolerance": "all",
+    "connection.url": "http://elasticsearch:9200",
+    "connection.username": "elastic",
+    "connection.password": "adminadmin",
+    "schema.ignore": "true",
+    "transforms": "ElasticSearchAlias",
+    "transforms.ElasticSearchAlias.type": "org.apache.kafka.connect.transforms.RegexRouter",
+    "transforms.ElasticSearchAlias.regex": ".*",
+    "transforms.ElasticSearchAlias.replacement": "index_$0",
+    "flush.synchronously": "true"
+}
+
+### CREATE CONNECTOR
+PUT {{baseUrl}}/connectors/{{connectorName}}/config HTTP/1.1
+Content-Type: application/json
+
+{
+    "connector.class": "io.confluent.connect.elasticsearch.ElasticsearchSinkConnector",
+    "errors.log.include.messages": "true",
+    "config.action.reload": "restart",
+    "errors.log.enable": "true",
+    "tasks.max": "1",
+    "errors.deadletterqueue.topic.replication.factor": "1",
+    "value.converter": "org.apache.kafka.connect.json.JsonConverter",
+    "value.converter.schemas.enable": "false",
+    "errors.retry.timeout": "10",
+    "topics": "transactions",
+    "errors.retry.delay.max.ms": "5000",
+    "behavior.on.malformed.documents": "warn",
+    "flush.timeout.ms": "10000",
+    "errors.tolerance": "all",
+    "connection.url": "http://elasticsearch:9200",
+    "connection.username": "elastic",
+    "connection.password": "adminadmin",
+    "schema.ignore": "true",
+    "transforms": "ElasticSearchAlias",
+    "transforms.ElasticSearchAlias.type": "org.apache.kafka.connect.transforms.RegexRouter",
+    "transforms.ElasticSearchAlias.regex": ".*",
+    "transforms.ElasticSearchAlias.replacement": "index_$0",
+    "flush.synchronously": "true"
+}
+
+### Get connectors
+GET {{baseUrl}}/connectors
+
+### GET CONNECTOR STATUS
+GET {{baseUrl}}/connectors/{{connectorName}}/status
+
+### GET CONNECTOR CONFIG
+GET {{baseUrl}}/connectors/{{connectorName}}/config
+
+### Delete connector
+DELETE {{baseUrl}}/connectors/{{connectorName}} HTTP/1.1
+
+### Get log level
+GET {{baseUrl}}/admin/loggers
+
+### Set log level
+PUT {{baseUrl}}/admin/loggers/root
+Content-Type: application/json
+
+{
+    "level": "INFO"
+}
+
+### Set log level
+PUT {{baseUrl}}/admin/loggers/org.apache.kafka.clients.NetworkClient
+Content-Type: application/json
+
+{
+    "level": "INFO"
+}

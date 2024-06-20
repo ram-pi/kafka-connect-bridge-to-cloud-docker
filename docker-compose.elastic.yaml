@@ -1,0 +1,71 @@
+---
+services:
+  elasticsearch:
+    hostname: elasticsearch
+    container_name: elasticsearch
+    image: docker.elastic.co/elasticsearch/elasticsearch:${STACK_VERSION}
+    environment:
+      - node.name=my-node
+      - discovery.type=single-node
+      - cluster.name=my-es-data-cluster
+      - bootstrap.memory_lock=true
+      - xpack.security.http.ssl.enabled=false
+      - ELASTIC_PASSWORD=${ELASTIC_PASSWORD}
+      - "ES_JAVA_OPTS=-Xms1024m -Xmx1024m"
+    ports:
+      - 9200:9200
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 180s
+      restart_policy:
+        condition: on-failure      
+  
+  kibana:
+    hostname: kibana
+    container_name: kibana
+    image: docker.elastic.co/kibana/kibana:${STACK_VERSION}
+    ports:
+      - 5601:5601
+    environment:
+      - SERVERNAME=kibana
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+      - ELASTICSEARCH_USERNAME=kibana_system
+      - ELASTICSEARCH_PASSWORD=${KIBANA_PASSWORD}
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "curl -s -I http://localhost:5601 | grep -q 'HTTP/1.1 302 Found'",
+        ]
+      interval: 10s
+      timeout: 10s
+      retries: 120
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 180s
+      restart_policy:
+        condition: on-failure    
+
+  setup:
+    hostname: alpine
+    container_name: alpine
+    image: alpine
+    command: 
+      - /bin/sh
+      - -c 
+      - |
+        apk add --no-cache curl 
+        if [ x${ELASTIC_PASSWORD} == x ]; then
+          echo "Set the ELASTIC_PASSWORD environment variable in the .env file";
+          exit 1;
+        fi;
+        echo "Waiting for Elasticsearch availability";
+        until curl -s http://elasticsearch:9200 | grep -iq "missing authentication credentials"; do curl http://elasticsearch:9200; sleep 10; done;
+        echo "Setting kibana_system password";
+        until curl -s -X POST -u elastic:${ELASTIC_PASSWORD} -H "Content-Type: application/json" http://elasticsearch:9200/_security/user/kibana_system/_password -d "{\"password\":\"${KIBANA_PASSWORD}\"}" | grep -q "^{}"; do sleep 10; done;
+        echo "All done!";
+      

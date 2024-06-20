@@ -1,0 +1,54 @@
+---
+services:
+    connect:
+        image: confluentinc/cp-server-connect:${CFLT_TAG}
+        hostname: connect
+        container_name: connect
+
+        healthcheck:
+            test: curl -fail --silent http://connect:8083/connectors --output /dev/null || exit 1
+            interval: 10s
+            retries: 20
+            start_period: 20s
+            
+        environment:
+            CONNECT_REST_ADVERTISED_PORT: 8083
+            CONNECT_REST_PORT: 8083
+            CONNECT_LISTENERS: http://0.0.0.0:8083
+            CONNECT_BOOTSTRAP_SERVERS: ${CCLOUD_BOOTSTRAP_SERVER}
+            CONNECT_SASL_JAAS_CONFIG: org.apache.kafka.common.security.plain.PlainLoginModule required username='${CCLOUD_API_KEY}' password='${CCLOUD_API_SECRET}';
+            CONNECT_SECURITY_PROTOCOL: SASL_SSL
+            CONNECT_SASL_MECHANISM: PLAIN
+            CONNECT_REST_ADVERTISED_HOST_NAME: connect
+            CONNECT_GROUP_ID: kafka-connect
+            CONNECT_CONFIG_STORAGE_TOPIC: _bridge-to-cloud-connect-configs
+            CONNECT_OFFSET_STORAGE_TOPIC: _bridge-to-cloud-connect-offsets
+            CONNECT_STATUS_STORAGE_TOPIC: _bridge-to-cloud-connect-status
+            CONNECT_KEY_CONVERTER: org.apache.kafka.connect.storage.StringConverter
+            CONNECT_VALUE_CONVERTER: org.apache.kafka.connect.storage.StringConverter
+            CONNECT_EXACTLY_ONCE_SOURCE_SUPPORT: enabled
+            CONNECT_VALUE_CONVERTER_SCHEMA_REGISTRY_URL: 
+            # CONNECT_CONFIG_STORAGE_REPLICATION_FACTOR: 1
+            # CONNECT_OFFSET_STORAGE_REPLICATION_FACTOR: 1
+            # CONNECT_STATUS_STORAGE_REPLICATION_FACTOR: 1
+            # plugin.path=/usr/share/java,/usr/share/confluent-hub-components,/data/connect-plugin-jars
+            CONNECT_PLUGIN_PATH: /data/connect-plugin-jars,/data/connect-custom-smt-jars
+            KAFKA_OPTS: -javaagent:/tmp/jmx_prometheus_javaagent-0.20.0.jar=8091:/tmp/kafka_connect.yml
+            # BRIDGE TO CLOUD
+            CONNECT_PRODUCER_BOOTSTRAP_SERVERS: ${CCLOUD_BOOTSTRAP_SERVER} 
+            CONNECT_PRODUCER_SASL_JAAS_CONFIG: org.apache.kafka.common.security.plain.PlainLoginModule required username='${CCLOUD_API_KEY}' password='${CCLOUD_API_SECRET}';
+            CONNECT_PRODUCER_SECURITY_PROTOCOL: SASL_SSL
+            CONNECT_PRODUCER_SASL_MECHANISM: PLAIN
+            CONNECT_CONSUMER_BOOTSTRAP_SERVERS: ${CCLOUD_BOOTSTRAP_SERVER} 
+            CONNECT_CONSUMER_SASL_JAAS_CONFIG: org.apache.kafka.common.security.plain.PlainLoginModule required username='${CCLOUD_API_KEY}' password='${CCLOUD_API_SECRET}';
+            CONNECT_CONSUMER_SECURITY_PROTOCOL: SASL_SSL
+            CONNECT_CONSUMER_SASL_MECHANISM: PLAIN
+        ports:
+            - 8083:8083
+        volumes:
+            - $PWD/volumes/jmx_prometheus_javaagent-0.20.0.jar:/tmp/jmx_prometheus_javaagent-0.20.0.jar
+            - $PWD/volumes/kafka_connect.yml:/tmp/kafka_connect.yml
+            - $PWD/volumes/connect-plugin-jars:/data/connect-plugin-jars
+            - $PWD/volumes/connect-custom-smt-jars:/data/connect-custom-smt-jars
+            - $PWD/files:/data/files
+
